@@ -7,10 +7,20 @@ class spectrum:
         self.flux = flux
     
     def wn2wl(self,units='microns'):
+		#units can be 'A' or 'Angstroms' for Angstroms
+		#'nm' or 'nanometers' for nm
+		#'microns' for microns (defaut)
+		#'mm' or 'millimeters' for millimeters
         #assume wave number is in 1/cm
 		
 		conversion_factor=10.0**4
-
+		if units=='nm' or units=='nanometers':
+			conversion_factor=10.0**7
+		if units=='Angstroms'  or units=='A':
+			conversion_factor=10.0**8
+		if units=='mm' or units=='millimeters'
+			conversion_factor=10.0
+		
 		
         return conversion_factor/self.flux
     
