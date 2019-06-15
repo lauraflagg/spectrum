@@ -4,24 +4,24 @@ from scipy.interpolate import interp1d
 class spectrum:
     #units can be something like erg/ s cm^2 nu or normalized or counts
 
-    def __init__(self, flux, spectral_axis, spectral_axis_type='wavelength',spectral_axis_units=None):
-	#type_spectral_axis can be wavlength, wavenumber, or frequency
-	#units is for wavelength and frequency type
-	
+    def __init__(self, flux, spectral_axis, spectral_axis_type='wavelength',spectral_axis_units=None,flux_units=None):
+        #type_spectral_axis can be wavlength, wavenumber, or frequency
+        #units is for wavelength and frequency type
+
 
         self.flux = flux
-	self.spectral_axis=spectral_axis
-	
-	self.spectral_axis_type=spectral_axis_type
-	
-	if spectral_axis_type=='wavelength':
-	    self.wl = self.spectral_axis
-	
-	if isinstance(spectral_axis_units,str):
-	    self.spectral_axis_units=spectral_axis_units
+        self.spectral_axis=spectral_axis
+
+        self.spectral_axis_type=spectral_axis_type
+
+        if spectral_axis_type=='wavelength':
+            self.wl = self.spectral_axis
+
+        if isinstance(spectral_axis_units,str):
+            self.spectral_axis_units=spectral_axis_units
 
     def wn2wl(self,units='microns'):
-	
+
         #units can be 'A' or 'Angstroms' for Angstroms
         #'nm' or 'nanometers' for nm
         #'microns' for microns (defaut)
@@ -36,8 +36,8 @@ class spectrum:
         elif units=='mm' or units=='millimeters':
             conversion_factor=10.0
 
-
-        return conversion_factor/self.spectral_axis
+        self.wl=conversion_factor/self.spectral_axis
+        return self.wl
 
     def xcor(self, template, lb, ub, dispersion=0):
         #template must be an instance of spectrum
@@ -74,8 +74,8 @@ class spectrum:
 
 
     def rotbroad(self,vsini, eps=0.6,nr=10,ntheta=100, dif=0):
-		"""this don't work at the edges yet"""
-	
+        """this don't work at the edges yet"""
+
         flux=self.flux
         wl=self.wl
 
