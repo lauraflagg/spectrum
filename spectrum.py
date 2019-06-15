@@ -1,29 +1,44 @@
+import numpy as np
+from scipy.interpolate import interp1d
+
 class spectrum:
     #units can be something like erg/ s cm^2 nu or normalized or counts
 
-    def __init__(self, wl, flux): 
-        self.wl = wl
-		#wavelength
+    def __init__(self, flux, spectral_axis, spectral_axis_type='wavelength',spectral_axis_units=None):
+	#type_spectral_axis can be wavlength, wavenumber, or frequency
+	#units is for wavelength and frequency type
+	
+
         self.flux = flux
-    
+	self.spectral_axis=spectral_axis
+	
+	self.spectral_axis_type=spectral_axis_type
+	
+	if spectral_axis_type=='wavelength':
+	    self.wl = self.spectral_axis
+	
+	if isinstance(spectral_axis_units,str):
+	    self.spectral_axis_units=spectral_axis_units
+
     def wn2wl(self,units='microns'):
-		#units can be 'A' or 'Angstroms' for Angstroms
-		#'nm' or 'nanometers' for nm
-		#'microns' for microns (defaut)
-		#'mm' or 'millimeters' for millimeters
+	
+        #units can be 'A' or 'Angstroms' for Angstroms
+        #'nm' or 'nanometers' for nm
+        #'microns' for microns (defaut)
+        #'mm' or 'millimeters' for millimeters
         #assume wave number is in 1/cm
-		
-		conversion_factor=10.0**4
-		if units=='nm' or units=='nanometers':
-			conversion_factor=10.0**7
-		if units=='Angstroms'  or units=='A':
-			conversion_factor=10.0**8
-		if units=='mm' or units=='millimeters'
-			conversion_factor=10.0
-		
-		
-        return conversion_factor/self.flux
-    
+
+        conversion_factor=10.0**4
+        if units=='nm' or units=='nanometers':
+            conversion_factor=10.0**7
+        elif units=='Angstroms'  or units=='A':
+            conversion_factor=10.0**8
+        elif units=='mm' or units=='millimeters':
+            conversion_factor=10.0
+
+
+        return conversion_factor/self.spectral_axis
+
     def xcor(self, template, lb, ub, dispersion=0):
         #template must be an instance of spectrum
         #ub and lb are upper and lower bounds of pixel shift
@@ -55,13 +70,15 @@ class spectrum:
             rvs=np.arange(lb,ub+1,1)*dispersion
             corrs=corrs,rvs
         return corrs    
-    
-    
-    
+
+
+
     def rotbroad(self,vsini, eps=0.6,nr=10,ntheta=100, dif=0):
+		"""this don't work at the edges yet"""
+	
         flux=self.flux
         wl=self.wl
-    
+
         # based on CMJ's program rotint.pro edited May 11 1994
         # ;  This routine reads in a spectrum, s, on a wavelength scale, w, and a vsini
         # ;  with which to rotationally broaden the spectrum.  The rotationally broadened
@@ -75,9 +92,9 @@ class spectrum:
         # ;  observed solar differential rotation.  Note: the th in the above expression
         # ;  is the stellar co-latitude, not the same as the integration variable used
         # ;  below.  This is a disk integration routine.
-    
+
         #note from LF: using interpolate instead of spline
-    
+
         final_spec=np.zeros(len(flux))
 
         ns=np.zeros(len(flux))
@@ -103,30 +120,30 @@ class spectrum:
 
         ns=ns/tarea
         return spectrum(wl,ns)
-    
-    
+
+
     def findbests2n(self,width=20,edge=10,p=100):
         """Finds the best signal to noise in a spectrum by dividing the mean of a region 
         by the standard deviation in that region
-        
+
         not suitable for spectra with a continuum at 0 or no continuum
-        
+
         p is percentile from 0 to 100
         for best use 100 or 99 or something like that
         100 would return the very best s2n but might be suseptible to outliers
-        
+
         width is in pixels
         edge in pixels; edges can have odd edge effects, sometimes due to correcting for 
         the blaze function the best s2n will never be at ends"""
-        
+
         l=len(spec)
         spec=self.flux
-    
+
         s2nstemp=[]
         means=[]
         stds=[]
         i=edge
-    
+
         while i<(l-width-edge):
             rangeend=i+width
             arr=spec[i:rangeend]
@@ -137,6 +154,6 @@ class spectrum:
             means.append(avg)
             stds.append(std)
             i=i+1  
-    
+
         s2nstemp=np.nan_to_num(s2nstemp)
         return np.percentile(s2nstemp,p)    
