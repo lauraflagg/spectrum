@@ -4,40 +4,55 @@ from scipy.interpolate import interp1d
 class spectrum:
     #units can be something like erg/ s cm^2 nu or normalized or counts
 
-    def __init__(self, flux, spectral_axis, spectral_axis_type='wavelength',spectral_axis_units=None,flux_units=None):
-        #type_spectral_axis can be wavlength, wavenumber, or frequency
+    def __init__(self, flux, dispersion_axis=None, dispersion_axis_type=None,dispersion_axis_units=None,flux_units=None):
+        #type_dispersion_axis can be wavlength, wavenumber, or frequency
         #units is for wavelength and frequency type
 
 
         self.flux = flux
-        self.spectral_axis=spectral_axis
+        self.dispersion_axis=dispersion_axis
 
-        self.spectral_axis_type=spectral_axis_type
+        self.dispersion_axis_type=dispersion_axis_type
 
-        if spectral_axis_type=='wavelength':
-            self.wl = self.spectral_axis
 
-        if isinstance(spectral_axis_units,str):
-            self.spectral_axis_units=spectral_axis_units
+        if isinstance(dispersion_axis_units,str):
+            self.dispersion_axis_units=dispersion_axis_units
 
-    def wn2wl(self,units='microns'):
+    def findbests2n(self,width=20,edge=10,p=100):
+        """Finds the best signal to noise in a spectrum by dividing the mean of a region 
+        by the standard deviation in that region
 
-        #units can be 'A' or 'Angstroms' for Angstroms
-        #'nm' or 'nanometers' for nm
-        #'microns' for microns (defaut)
-        #'mm' or 'millimeters' for millimeters
-        #assume wave number is in 1/cm
+        not suitable for spectra with a continuum at 0 or no continuum
 
-        conversion_factor=10.0**4
-        if units=='nm' or units=='nanometers':
-            conversion_factor=10.0**7
-        elif units=='Angstroms'  or units=='A':
-            conversion_factor=10.0**8
-        elif units=='mm' or units=='millimeters':
-            conversion_factor=10.0
+        p is percentile from 0 to 100
+        for best use 100 or 99 or something like that
+        100 would return the very best s2n but might be suseptible to outliers
 
-        self.wl=conversion_factor/self.spectral_axis
-        return self.wl
+        width is in pixels
+        edge in pixels; edges can have odd edge effects, sometimes due to correcting for 
+        the blaze function the best s2n will never be at ends"""
+
+        l=len(spec)
+        spec=self.flux
+
+        s2nstemp=[]
+        means=[]
+        stds=[]
+        i=edge
+
+        while i<(l-width-edge):
+            rangeend=i+width
+            arr=spec[i:rangeend]
+            avg=np.mean(arr)
+            std=np.std(arr,ddof=1)
+            s2n=np.mean(arr)/np.std(arr,ddof=1)
+            s2nstemp.append(s2n)
+            means.append(avg)
+            stds.append(std)
+            i=i+1  
+
+        s2nstemp=np.nan_to_num(s2nstemp)
+        return np.percentile(s2nstemp,p)
 
     def xcor(self, template, lb, ub, dispersion=0):
         #template must be an instance of spectrum
@@ -72,12 +87,17 @@ class spectrum:
         return corrs    
 
 
+class spec_vs_wl(spectrum):
+    
+    dispersion_axis_type='wavelength'
+    
+
 
     def rotbroad(self,vsini, eps=0.6,nr=10,ntheta=100, dif=0):
         """this don't work at the edges yet"""
 
         flux=self.flux
-        wl=self.wl
+        wl=self.dispersion_axis
 
         # based on CMJ's program rotint.pro edited May 11 1994
         # ;  This routine reads in a spectrum, s, on a wavelength scale, w, and a vsini
@@ -119,41 +139,37 @@ class spectrum:
                     tarea=tarea+area
 
         ns=ns/tarea
-        return spectrum(wl,ns)
+        return spec_vs_wl(ns,wl)
 
 
-    def findbests2n(self,width=20,edge=10,p=100):
-        """Finds the best signal to noise in a spectrum by dividing the mean of a region 
-        by the standard deviation in that region
 
-        not suitable for spectra with a continuum at 0 or no continuum
+class spec_vs_wn(spectrum):
+    
+    dispersion_axis_type='wavenumber'
+    
 
-        p is percentile from 0 to 100
-        for best use 100 or 99 or something like that
-        100 would return the very best s2n but might be suseptible to outliers
 
-        width is in pixels
-        edge in pixels; edges can have odd edge effects, sometimes due to correcting for 
-        the blaze function the best s2n will never be at ends"""
+    def wn2wl(self,units='microns',return_wl=False):
+        #if return_wl is True then just the wl is returned
+        #otherwise, a new object is returned with wl, flux
 
-        l=len(spec)
-        spec=self.flux
+        #units can be 'A' or 'Angstroms' for Angstroms
+        #'nm' or 'nanometers' for nm
+        #'microns' for microns (defaut)
+        #'mm' or 'millimeters' for millimeters
+        #assume wave number is in 1/cm
 
-        s2nstemp=[]
-        means=[]
-        stds=[]
-        i=edge
+        conversion_factor=10.0**4
+        if units=='nm' or units=='nanometers':
+            conversion_factor=10.0**7
+        elif units=='Angstroms'  or units=='A':
+            conversion_factor=10.0**8
+        elif units=='mm' or units=='millimeters':
+            conversion_factor=10.0
 
-        while i<(l-width-edge):
-            rangeend=i+width
-            arr=spec[i:rangeend]
-            avg=np.mean(arr)
-            std=np.std(arr,ddof=1)
-            s2n=np.mean(arr)/np.std(arr,ddof=1)
-            s2nstemp.append(s2n)
-            means.append(avg)
-            stds.append(std)
-            i=i+1  
+        wl=conversion_factor/self.dispersion_axis
+        if return_wl:
+            return wl
+        else:
+            return spec_vs_wl(self.flux,wl)
 
-        s2nstemp=np.nan_to_num(s2nstemp)
-        return np.percentile(s2nstemp,p)    
