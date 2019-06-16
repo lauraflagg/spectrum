@@ -2,11 +2,23 @@ import numpy as np
 from scipy.interpolate import interp1d
 
 class spectrum:
-    #units can be something like erg/ s cm^2 nu or normalized or counts
 
-    def __init__(self, flux, dispersion_axis=None, dispersion_axis_type=None,dispersion_axis_units=None,flux_units=None):
+
+    def __init__(self, flux, dispersion_axis=None, dispersion_axis_type=None,dispersion_axis_units=None,flux_units=None,vacuum=True):
+        #if vacuum=False, then the dispersion_axis is after being defracted by air
+        
         #type_dispersion_axis can be wavlength, wavenumber, or frequency
         #units is for wavelength and frequency type
+        
+        #dispers_axis_units can be 'A' or 'Angstroms' for Angstroms
+        #'nm' or 'nanometers' for nm
+        #'microns' for microns 
+        #'mm' or 'millimeters' for millimeters
+        #'Hz' for hertz
+        #'1/cm' for wavenumber
+        
+        
+        #flux_units can be something like erg/ s cm^2 nu or normalized or counts        
 
 
         self.flux = flux
@@ -171,5 +183,5 @@ class spec_vs_wn(spectrum):
         if return_wl:
             return wl
         else:
-            return spec_vs_wl(self.flux,wl)
+            return spec_vs_wl(self.flux,wl,dispersion_axis_units=units)
 
