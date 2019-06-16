@@ -2,7 +2,7 @@ import numpy as np
 from scipy.interpolate import interp1d
 from scipy import constants
 
-c_kms=constansts.c/10.**3
+c_kms=constants.c/10.**3
 #convert from m/s to km/s
 
 class spectrum:
@@ -162,11 +162,12 @@ class spec_vs_wl(spectrum):
         #shift in km/s
         #note, this is non-relativistic
         
-        #if np.abs(shift)>0.1*c_kms:
-            ##if shift is high enough to be relativistic
-            #raise Exception("The absolute value of the Doppler shift should be less than 10% of 
-                            #the speed of light since this program does need use a relativistic 
-                            #treatement.")
+        if np.abs(shift)>0.1*c_kms:
+            #if shift is high enough to be relativistic
+            raise ValueError("The absolute value of the Doppler shift should be \
+                             less than 10% of the speed of light since this \
+                             program does need use a relativistic treatement.",
+                             'Your Doppler shift= ', shift, ' km/s')
         
         new_wl = self.dispersion_axis * (1.0 + shift / c_kms)
         if return_wl:
