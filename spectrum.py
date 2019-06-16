@@ -1,5 +1,9 @@
 import numpy as np
 from scipy.interpolate import interp1d
+from scipy import constants
+
+c_kms=constansts.c/10.**3
+#convert from m/s to km/s
 
 class spectrum:
 
@@ -152,6 +156,23 @@ class spec_vs_wl(spectrum):
 
         ns=ns/tarea
         return spec_vs_wl(ns,wl)
+    
+    def doppler_shift(self,shift,return_wl=False):
+        #return_wl=True returns only the new wavelength scale
+        #shift in km/s
+        #note, this is non-relativistic
+        
+        #if np.abs(shift)>0.1*c_kms:
+            ##if shift is high enough to be relativistic
+            #raise Exception("The absolute value of the Doppler shift should be less than 10% of 
+                            #the speed of light since this program does need use a relativistic 
+                            #treatement.")
+        
+        new_wl = self.dispersion_axis * (1.0 + shift / c_kms)
+        if return_wl:
+            return new_wl
+        else:
+            return spec_vs_wl(self.flux,new_wl)
 
 
 
