@@ -11,10 +11,10 @@ class spectrum:
     def __init__(self, flux, dispersion_axis=None, dispersion_axis_type=None,dispersion_axis_units=None,flux_units=None,vacuum=True):
         #if vacuum=False, then the dispersion_axis is after being defracted by air
         
-        #type_dispersion_axis can be wavlength, wavenumber, or frequency
+        #dispersion_axis_type can be wavlength, wavenumber, or frequency
         #units is for wavelength and frequency type
         
-        #dispers_axis_units can be 'A' or 'Angstroms' for Angstroms
+        #dispersion_axis_units can be 'A' or 'Angstroms' for Angstroms
         #'nm' or 'nanometers' for nm
         #'microns' for microns 
         #'mm' or 'millimeters' for millimeters
@@ -34,22 +34,18 @@ class spectrum:
         if isinstance(dispersion_axis_units,str):
             self.dispersion_axis_units=dispersion_axis_units
 
-    def findbests2n(self,width=20,edge=10,p=100):
-        """Finds the best signal to noise in a spectrum by dividing the mean of a region 
+    def finds2n(self,width=20,edge=10,returnstd=False,returndispersionaxis=False):
+        """Finds the signal to noise in a spectrum by dividing the mean of a region 
         by the standard deviation in that region
 
         not suitable for spectra with a continuum at 0 or no continuum
 
-        p is percentile from 0 to 100
-        for best use 100 or 99 or something like that
-        100 would return the very best s2n but might be suseptible to outliers
-
-        width is in pixels
+        width is in pixels, it should be evene
         edge in pixels; edges can have odd edge effects, sometimes due to correcting for 
         the blaze function the best s2n will never be at ends"""
-
-        l=len(spec)
         spec=self.flux
+        l=len(spec)
+        
 
         s2nstemp=[]
         means=[]
@@ -67,10 +63,38 @@ class spectrum:
             stds.append(std)
             i=i+1  
 
-        s2nstemp=np.nan_to_num(s2nstemp)
+        toreturn=s2nstemp
+        if returndispersionaxis==True:
+            toreturn=self.dispersion_axis[int(width/2)+edge,-edge-int(width/2)], s2nstemp
+            
+        if returnstd==True:
+            toreturn=toreturn, stds
+
+        return toreturn
+        
+
+
+
+    def findbests2n(self,width=20,edge=10,p=100):
+        """Finds the best signal to noise in a spectrum by dividing the mean of a region 
+        by the standard deviation in that region
+
+        not suitable for spectra with a continuum at 0 or no continuum
+
+        p is percentile from 0 to 100
+        for best use 100 or 99 or something like that
+        100 would return the very best s2n but might be suseptible to outliers
+
+        width is in pixels, it should be even
+        edge in pixels; edges can have odd edge effects, sometimes due to correcting for 
+        the blaze function the best s2n will never be at ends"""
+        
+
+        s2nstemp=np.nan_to_num(finds2n(self,width=width,edge=edge,returnstd=False,returndispersionaxis=False))
         return np.percentile(s2nstemp,p)
 
     def xcor(self, template, lb, ub, dispersion=0):
+        #this is a NORMALIZED cross-correlation function
         #template must be an instance of spectrum
         #ub and lb are upper and lower bounds of pixel shift
         f=self.flux
@@ -78,8 +102,6 @@ class spectrum:
 
         l=ub-lb
         arrl=len(f)
-        #a1=np.zeros(arrl+l+1)
-        #a2=a1
         shifts=np.arange(lb, ub+1)
         shifts=shifts.astype(np.int)
 
@@ -164,9 +186,9 @@ class spec_vs_wl(spectrum):
         
         if np.abs(shift)>0.1*c_kms:
             #if shift is high enough to be relativistic
-            raise ValueError("The absolute value of the Doppler shift should be \
-                             less than 10% of the speed of light since this \
-                             program does need use a relativistic treatement.",
+            raise ValueError("The absolute value of the Doppler shift should be "\
+                             "less than 10% of the speed of light since this "\
+                             "program does need use a relativistic treatement.",
                              'Your Doppler shift= ', shift, ' km/s')
         
         new_wl = self.dispersion_axis * (1.0 + shift / c_kms)
